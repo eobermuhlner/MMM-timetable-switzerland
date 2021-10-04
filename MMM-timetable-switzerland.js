@@ -1,7 +1,7 @@
 Module.register("MMM-timetable-switzerland", {
 	defaults: {
-		refreshHours: 6,
-		refreshMinutes: 0,
+		refreshHours: 0,
+		refreshMinutes: 5,
 		type: "stationboard",
 		station: "Zürich",
 		from: "Zürich",
@@ -10,6 +10,7 @@ Module.register("MMM-timetable-switzerland", {
 		opacityFactor: 0.8,
 		timeFormat: "HH:mm",
 		showFrom: false,
+		showTo: false,
 		showWalk: false,
 		showNextStops: 3,
 	},
@@ -65,7 +66,7 @@ Module.register("MMM-timetable-switzerland", {
 			wrapper.appendChild(dom);
 		}
 		if (self.timetable.connections) {
-			dom = self.getConnectionsDom(self.timetable, self.config.showFrom, self.config.showWalk);
+			dom = self.getConnectionsDom(self.timetable);
 			wrapper.appendChild(dom);
 		}
 
@@ -142,7 +143,7 @@ Module.register("MMM-timetable-switzerland", {
 		return table;
 	},
 
-	getConnectionsDom: function(data, showFrom, showWalk) {
+	getConnectionsDom: function(data) {
 		var self = this;
 
 		table = document.createElement("table");
@@ -180,7 +181,7 @@ Module.register("MMM-timetable-switzerland", {
 			}
 			tr.appendChild(td);
 
-			if (showFrom) {
+			if (self.config.showFrom) {
 				td = document.createElement("td");
 				td.innerHTML = connection.from.station.name;
 				td.className = "dimmed"
@@ -188,10 +189,10 @@ Module.register("MMM-timetable-switzerland", {
 			}
 
 			for (let sectionIndex = 0; sectionIndex < maxSections; sectionIndex++) {
-				if (sectionIndex < connection.sections.length && (showWalk || !connection.sections[sectionIndex].walk)) {
+				if (sectionIndex < connection.sections.length && (self.config.showWalk || !connection.sections[sectionIndex].walk)) {
 					var section = connection.sections[sectionIndex];
 
-					if (showFrom || sectionIndex > 0) {
+					if (self.config.showFrom || sectionIndex > 0) {
 						td = document.createElement("td");
 						if (section.departure) {
 							var mom = moment(section.departure.departure);
@@ -220,7 +221,7 @@ Module.register("MMM-timetable-switzerland", {
 
 					if (section.walk) {
 						td = document.createElement("td");
-						td.className = "fa fa-walking"
+						td.className = "fa fa-walking bright"
 						tr.appendChild(td);
 						td = document.createElement("td");
 						tr.appendChild(td);
@@ -249,17 +250,18 @@ Module.register("MMM-timetable-switzerland", {
 				}
 			}
 
-
-			td = document.createElement("td");
-			td.innerHTML = connection.to.station.name;
-			tr.appendChild(td);
+			if (self.config.showTo) {
+				td = document.createElement("td");
+				td.innerHTML = connection.to.station.name;
+				tr.appendChild(td);
+			}
 
 			td = document.createElement("td");
 			if (connection.to.arrival) {
 				var mom = moment(connection.to.arrival);
 				td.innerHTML = mom.format(self.config.timeFormat);
 			}
-			td.className = "dimmed"
+			td.className = "bright"
 			tr.appendChild(td);
 
 			td = document.createElement("td");
