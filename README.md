@@ -26,7 +26,7 @@ The timetable has two basic modes:
 Show all public transport leaving a specified station.
 
 Edit the `MagicMirror/config/config.js` file:
-```json
+```json5
   modules: [
     {
       module: 'MMM-timetable-switzerland',
@@ -58,7 +58,7 @@ Optional configurations for the `stationboard` are:
 Show all connections between two specified stations or addresses.
 
 Edit the `MagicMirror/config/config.js` file:
-```json
+```json5
   modules: [
     {
       module: 'MMM-timetable-switzerland',
@@ -80,7 +80,7 @@ Use the `showWalk: true` option to make the details of the walking times.
 
 ### Stationboard
 
-```json
+```json5
       config: {
         type: 'stationboard',
         station: 'Zürich'
@@ -89,7 +89,7 @@ Use the `showWalk: true` option to make the details of the walking times.
 
 ![](screenshots/screenshot_stationboard.png)
 
-```json
+```json5
       config: {
         type: 'stationboard',
         station: 'Zürich',
@@ -101,7 +101,7 @@ Use the `showWalk: true` option to make the details of the walking times.
 
 ### Connections
 
-```json
+```json5
       config: {
         type: "connections",
         from: 'Landesmuseum,Zürich', // from station or address
@@ -111,7 +111,7 @@ Use the `showWalk: true` option to make the details of the walking times.
 
 ![](screenshots/screenshot_connections.png)
 
-```json
+```json5
       config: {
         type: "connections",
         from: 'Landesmuseum,Zürich', // from station or address
