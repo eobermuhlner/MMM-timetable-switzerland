@@ -1,25 +1,25 @@
 Module.register("MMM-timetable-switzerland", {
 	defaults: {
-		refreshHours: 0,
-		refreshMinutes: 5,
-		refreshScreenMinutes: 0,
-		refreshScreenSeconds: 1,
-		type: "stationboard",
-		station: "Zürich",
-		from: "Zürich",
-		to: "Basel",
-		limit: 10,
-		limitDisplay: 5,
-		opacityFactor: 0.8,
-		timeFormat: "HH:mm",
-		showFrom: false,
-		showTo: false,
-		showWalk: false,
-		showNextStops: 3,
-		showTimeUntilDeparture: true,
-		showTimeUntilDepartureLessThanMinutes: 60,
-		showTimeUntilDepartureRedLessThanMinutes: 1,
-		showTimeUntilDepartureOrangeLessThanMinutes: 2
+		refreshHours: 0, // request timetable every x hours (plus refreshMinutes)
+		refreshMinutes: 5,  // request timetable every x minutes (plus refreshHours)
+		refreshScreenMinutes: 0, // refresh screen timetable every x minutes (plus refreshScreenSeconds)
+		refreshScreenSeconds: 1, // refresh screen timetable every x seconds (plus refreshScreenSeconds)
+		type: "stationboard", // allowed: "stationboard", "connections"
+		station: "Zürich", // in "stationboard" show this station
+		from: "Zürich", // in "connections" use this departure station or address
+		to: "Basel", // in "connections" use this arrival station or address
+		limit: 10, // limit requested number of entries (should be at least limitDisplay)
+		limitDisplay: 5, // limit displayed number of entries
+		opacityFactor: 0.8, // fade out later entries by this factor
+		timeFormat: "HH:mm", // time format to display
+		showFrom: false, // show the name of departure station
+		showTo: false, // show the name of arrival station
+		showWalk: false, // show the walking parts of the connection
+		showNextStops: 3, // show the number of next stops in "stationboard"
+		showTimeUntilDeparture: true, // show the relative time until departure (e.g. "in 2m 15s")
+		showTimeUntilDepartureLessThanMinutes: 60, // show the relative time until departure when less than x minutes
+		showTimeUntilDepartureRedLessThanMinutes: 1, // show the relative time until departure in _red_ when less than x minutes
+		showTimeUntilDepartureOrangeLessThanMinutes: 2 // show the relative time until departure in _orange_ when less than x minutes
 	},
 
 	getScripts: function() {
@@ -124,7 +124,8 @@ Module.register("MMM-timetable-switzerland", {
 				}
 				var millisUntilDeparture = mom.diff(now);
 				td.innerHTML = self.humanizeDepartureMillis(millisUntilDeparture);
-				td.className = "dimmed xsmall";
+				td.className = "dimmed xsmall time-until-departure";
+				td.style.min
 				if (millisUntilDeparture < self.config.showTimeUntilDepartureRedLessThanMinutes*60*1000) {
 					td.className += " red";
 				} else if (millisUntilDeparture < self.config.showTimeUntilDepartureOrangeLessThanMinutes*60*1000) {
@@ -137,25 +138,25 @@ Module.register("MMM-timetable-switzerland", {
 			if (journey.stop.departure) {
 				var mom = moment(journey.stop.departure);
 				td.innerHTML = mom.format(self.config.timeFormat);
-				td.className = "bright";
+				td.className = "bright departure-time";
 			}
 			tr.appendChild(td);
 
 			td = document.createElement("td");
 			if (journey.stop.delay && journey.stop.delay > 0) {
 				td.innerHTML = "+" + journey.stop.delay;
-				td.className = "bright red";
+				td.className = "bright red departure-delay";
 			}
 			tr.appendChild(td);
 
 			td = document.createElement("td");
 			td.innerHTML = journey.category;
-			td.className = "bright";
+			td.className = "bright journey-category";
 			tr.appendChild(td);
 
 			td = document.createElement("td");
 			td.innerHTML = journey.number;
-			td.className = "align-left bright";
+			td.className = "align-left bright journey-number";
 			tr.appendChild(td);
 
 			if (self.config.showNextStops > 0) {
@@ -164,19 +165,19 @@ Module.register("MMM-timetable-switzerland", {
 					if (stopIndex+1 < journey.passList.length-1) { // do not show index 0 (current station) and last index (final destination)
 						td.innerHTML = journey.passList[stopIndex+1].station.name;
 					}
-					td.className = "dimmed xsmall";
+					td.className = "dimmed xsmall station-name";
 					tr.appendChild(td);
 				}
 			}
 
 			td = document.createElement("td");
 			td.innerHTML = journey.to;
-			td.className = "bright";
+			td.className = "bright station-name";
 			tr.appendChild(td);
 
 			td = document.createElement("td");
 			td.innerHTML = journey.stop.platform;
-			td.className = "dimmed"
+			td.className = "dimmed platform"
 			tr.appendChild(td);
 
 			tr.appendChild(td);
@@ -234,7 +235,7 @@ Module.register("MMM-timetable-switzerland", {
 				}
 				var millisUntilDeparture = mom.diff(now);
 				td.innerHTML = self.humanizeDepartureMillis(millisUntilDeparture);
-				td.className = "dimmed xsmall";
+				td.className = "dimmed xsmall time-until-departure";
 				if (millisUntilDeparture < self.config.showTimeUntilDepartureRedLessThanMinutes*60*1000) {
 					td.className += " red";
 				} else if (millisUntilDeparture < self.config.showTimeUntilDepartureOrangeLessThanMinutes*60*1000) {
@@ -247,21 +248,21 @@ Module.register("MMM-timetable-switzerland", {
 			if (connection.from.departure) {
 				var mom = moment(connection.from.departure);
 				td.innerHTML = mom.format(self.config.timeFormat);
-				td.className = "bright";
+				td.className = "bright departure-time";
 			}
 			tr.appendChild(td);
 
 			td = document.createElement("td");
 			if (connection.from.delay && connection.from.delay > 0) {
 				td.innerHTML = "+" + connection.from.delay;
-				td.className = "bright red";
+				td.className = "bright red departure-delay";
 			}
 			tr.appendChild(td);
 
 			if (self.config.showFrom) {
 				td = document.createElement("td");
 				td.innerHTML = connection.from.station.name;
-				td.className = "dimmed"
+				td.className = "dimmed station-name"
 				tr.appendChild(td);
 			}
 
@@ -274,20 +275,20 @@ Module.register("MMM-timetable-switzerland", {
 						if (section.departure) {
 							var mom = moment(section.departure.departure);
 							td.innerHTML = mom.format(self.config.timeFormat);
-							td.className = "dimmed";
+							td.className = "dimmed departure-time";
 						}
 						tr.appendChild(td);
 
 						td = document.createElement("td");
 						if (section.delay && section.delay > 0) {
 							td.innerHTML = "+" + section.delay;
-							td.className = "bright red";
+							td.className = "bright red departure-delay";
 						}
 						tr.appendChild(td);
 
 						td = document.createElement("td");
 						td.innerHTML = section.departure.station.name;
-						td.className = "xsmall align-left";
+						td.className = "xsmall align-left station-name";
 						tr.appendChild(td);
 					} else {
 						td = document.createElement("td");
@@ -309,13 +310,13 @@ Module.register("MMM-timetable-switzerland", {
 						tr.appendChild(td);
 					} else if (section.journey) {
 						td = document.createElement("td");
-						td.innerHTML = section.journey.category
-						td.className = "bright";
+						td.innerHTML = section.journey.category;
+						td.className = "bright journey-category";
 						tr.appendChild(td);
 
 						td = document.createElement("td");
-						td.innerHTML = section.journey.number
-						td.className = "bright align-left"
+						td.innerHTML = section.journey.number;
+						td.className = "bright align-left journey-number";
 						tr.appendChild(td);
 					}
 				} else {
@@ -335,6 +336,7 @@ Module.register("MMM-timetable-switzerland", {
 			if (self.config.showTo) {
 				td = document.createElement("td");
 				td.innerHTML = connection.to.station.name;
+				td.className = "station-name";
 				tr.appendChild(td);
 			}
 
@@ -342,6 +344,7 @@ Module.register("MMM-timetable-switzerland", {
 			if (connection.to.arrival) {
 				var mom = moment(connection.to.arrival);
 				td.innerHTML = mom.format(self.config.timeFormat);
+				td.className = "arrival-time";
 			}
 			td.className = "bright"
 			tr.appendChild(td);
@@ -351,19 +354,22 @@ Module.register("MMM-timetable-switzerland", {
 			if (durationFields[0] > 0) {
 				var span = document.createElement("span");
 				span.innerHTML = parseInt(durationFields[0]) + self.translate("DAYS_SHORT") + " ";
+				span.className = "journey-duration-days";
 				td.appendChild(span);
 			}
 			if (durationFields[1] > 0) {
 				var span = document.createElement("span");
 				span.innerHTML = parseInt(durationFields[1]) + self.translate("HOURS_SHORT") + " ";
+				span.className = "journey-duration-hours";
 				td.appendChild(span);
 			}
 			if (durationFields[2] > 0) {
 				var span = document.createElement("span");
 				span.innerHTML = durationFields[2] + self.translate("MINUTES_SHORT") + " ";
+				span.className = "journey-duration-minutes";
 				td.appendChild(span);
 			}
-			td.className = "dimmed xsmall"
+			td.className = "dimmed xsmall journey-duration";
 			tr.appendChild(td);
 
 			tr.appendChild(td);
