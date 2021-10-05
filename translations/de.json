@@ -1,3 +1,13 @@
 {
-	"LOADING": "Lade &hellip;"
+	"LOADING": "Lade &hellip;",
+
+	"DAYS_SHORT": "d",
+	"HOURS_SHORT": "h",
+	"MINUTES_SHORT": "m",
+	"SECONDS_SHORT": "s",
+
+	"TIME_NOW": "jetzt",
+	"TIME_AGO": "vor {time}",
+	"TIME_IN": "in {time}",
+	"TIME_FAR_FUTURE": ""
 }
