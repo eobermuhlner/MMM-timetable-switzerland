@@ -230,4 +230,32 @@ The following values are the default configuration:
 
 ![](screenshots/screenshot_connections_custom.png)
 
+### Multiple Timetables
+
+```json5
+      config: {
+        timetables: [
+          {
+            type: 'stationboard',
+            station: 'Zürich',
+            showNextStops: 5,
+            limit: 10,
+            opacityFactor: 0.8
+          },
+          {
+            type: "connections",
+            from: 'Landesmuseum, Zürich',
+            to: 'Bundeshaus, Bern',
+            limit: 1
+          },
+          {
+            type: "connections",
+            from: 'Landesmuseum, Zürich',
+            to: 'Lugano',
+            limit: 1
+          },
+      ],
+```
+
+![](screenshots/screenshot_multiple_timetables.png)
 
