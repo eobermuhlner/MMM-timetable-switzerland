@@ -1,9 +1,9 @@
 Module.register("MMM-timetable-switzerland", {
 	defaults: {
-		refreshHours: 0, // request timetable every x hours (plus refreshMinutes)
-		refreshMinutes: 5,  // request timetable every x minutes (plus refreshHours)
-		refreshScreenMinutes: 0, // refresh screen timetable every x minutes (plus refreshScreenSeconds)
-		refreshScreenSeconds: 1, // refresh screen timetable every x seconds (plus refreshScreenSeconds)
+		refreshHours: 0, // Request timetable every x hours (plus refreshMinutes)
+		refreshMinutes: 5,  // Request timetable every x minutes (plus refreshHours)
+		refreshScreenMinutes: 0, // Refresh screen timetable every x minutes (plus refreshScreenSeconds)
+		refreshScreenSeconds: 1, // Refresh screen timetable every x seconds (plus refreshScreenSeconds)
 		timetables: [
 			{
 				type: "connections",
@@ -11,29 +11,29 @@ Module.register("MMM-timetable-switzerland", {
 				to: "Bundeshaus, Bern",
 				showDepartedMinutes: 1,
 				showWalk: true,
-				limitDisplay: 4,
+				limit: 4,
 			},
 			{
 				type: "stationboard",
 				station: "Zürich",
-				limitDisplay: 8,
+				limit: 8,
 				opacityFactor: 0.8,
 				transportations: [ 'train' ]
 			}
 		],
-		limit: 10, // limit requested number of entries (should be at least limitDisplay)
-		transportations: null, // limit transportation types to some of the following: [ 'train', 'tram', 'ship', 'bus', 'cableway' ]
-		limitDisplay: 5, // limit displayed number of entries
-		opacityFactor: 0.6, // fade out later entries by this factor
-		timeFormat: "HH:mm", // time format to display
-		showDepartedMinutes: 0, // show already departed connections for x minutes
-		showFrom: false, // show the name of departure station
-		showTo: false, // show the name of arrival station
-		showWalk: false, // show the walking parts of the connection
-		showNextStops: 3, // show the number of next stops in "stationboard"
-		showTimeUntilDeparture: true, // show the relative time until departure (e.g. "in 2m 15s")
-		showTimeUntilDepartureRedLessThanMinutes: 1, // show the relative time until departure in _red_ when less than x minutes
-		showTimeUntilDepartureOrangeLessThanMinutes: 2 // show the relative time until departure in _orange_ when less than x minutes
+		requestLimit: 10, // Limit requested number of entries (should be at least `limit`)
+		transportations: null, // Limit transportation types to some of the following: [ 'train', 'tram', 'ship', 'bus', 'cableway' ]
+		limit: 5, // Limit displayed number of entries (must be lower or equal to `requestLimit`)
+		opacityFactor: 0.6, // Fade out later entries by this factor
+		timeFormat: "HH:mm", // Time format to display
+		showDepartedMinutes: 0, // Show already departed connections for x minutes
+		showFrom: false, // Show the name of the departure station
+		showTo: false, // Show the name of the final station
+		showWalk: false, // Show the walking parts of the connection
+		showNextStops: 3, // Show the number of next stops in "stationboard"
+		showTimeUntilDeparture: true, // Show the relative time until departure (e.g. "in 2m")
+		showTimeUntilDepartureRedLessThanMinutes: 1, // Show the relative time until departure in _red_ when less than x minutes
+		showTimeUntilDepartureOrangeLessThanMinutes: 2 // Show the relative time until departure in _orange_ when less than x minutes
 	},
 
 	getScripts: function() {
@@ -63,9 +63,9 @@ Module.register("MMM-timetable-switzerland", {
 				url += "/connections";
 				url += "?from=" + timetable.from;
 				url += "&to=" + timetable.to;
-				var limit = self.firstValue(timetable.limit, self.config.limit);
-				if (limit) {
-					url += "&limit=" + limit;
+				var requestLimit = self.firstValue(timetable.requestLimit, self.config.requestLimit);
+				if (requestLimit) {
+					url += "&limit=" + requestLimit;
 				}
 				var transportations = self.firstValue(timetable.transportations, self.config.transportations);
 				if (transportations) {
@@ -77,9 +77,9 @@ Module.register("MMM-timetable-switzerland", {
 				var url = "http://transport.opendata.ch/v1";
 				url += "/stationboard";
 				url += "?station=" + timetable.station;
-				var limit = self.firstValue(timetable.limit, self.config.limit);
-				if (limit) {
-					url += "&limit=" + limit;
+				var requestLimit = self.firstValue(timetable.requestLimit, self.config.requestLimit);
+				if (requestLimit) {
+					url += "&limit=" + requestLimit;
 				}
 				var transportations = self.firstValue(timetable.transportations, self.config.transportations);
 				if (transportations) {
@@ -103,12 +103,12 @@ Module.register("MMM-timetable-switzerland", {
 					div.className = "medium connection-header";
 
 					var span = document.createElement("span");
-					span.innerHTML = self.config.timetables[i].from;
+					span.innerHTML = self.toNbsp(self.config.timetables[i].from);
 					span.className = "dimmed station-name connection-from"
 					div.appendChild(span);
 
 					var span = document.createElement("span");
-					span.innerHTML = self.config.timetables[i].to;
+					span.innerHTML = self.toNbsp(self.config.timetables[i].to);
 					span.className = "bright station-name connection-to"
 					div.appendChild(span);
 
@@ -146,13 +146,14 @@ Module.register("MMM-timetable-switzerland", {
 
 		var now = moment();
 
-		var limitDisplay = self.firstValue(config.limitDisplay, self.config.limitDisplay);
+		var limit = self.firstValue(config.limit, self.config.limit);
 		var opacityFactor = self.firstValue(config.opacityFactor, self.config.opacityFactor);
 		var showDepartedMinutes = self.firstValue(config.showDepartedMinutes, self.config.showDepartedMinutes);
 		var showTimeUntilDeparture = self.firstValue(config.showTimeUntilDeparture, self.config.showTimeUntilDeparture);
 		var showTimeUntilDepartureRedLessThanMinutes = self.firstValue(config.showTimeUntilDepartureRedLessThanMinutes, self.config.showTimeUntilDepartureRedLessThanMinutes);
 		var showTimeUntilDepartureOrangeLessThanMinutes = self.firstValue(config.showTimeUntilDepartureOrangeLessThanMinutes, self.config.showTimeUntilDepartureOrangeLessThanMinutes);
 		var showNextStops = self.firstValue(config.showNextStops, self.config.showNextStops);
+		var showWalk = self.firstValue(config.showWalk, self.config.showWalk);
 		var timeFormat = self.firstValue(config.timeFormat, self.config.timeFormat);
 
 		table = document.createElement("table");
@@ -177,7 +178,7 @@ Module.register("MMM-timetable-switzerland", {
 				}
 			}
 
-			if (displayCount++ >= limitDisplay) {
+			if (displayCount++ >= limit) {
 				continue;
 			}
 
@@ -263,7 +264,7 @@ Module.register("MMM-timetable-switzerland", {
 
 		var now = moment();
 
-		var limitDisplay = self.firstValue(config.limitDisplay, self.config.limitDisplay);
+		var limit = self.firstValue(config.limit, self.config.limit);
 		var opacityFactor = self.firstValue(config.opacityFactor, self.config.opacityFactor);
 		var showDepartedMinutes = self.firstValue(config.showDepartedMinutes, self.config.showDepartedMinutes);
 		var showTimeUntilDeparture = self.firstValue(config.showTimeUntilDeparture, self.config.showTimeUntilDeparture);
@@ -271,6 +272,7 @@ Module.register("MMM-timetable-switzerland", {
 		var showTimeUntilDepartureOrangeLessThanMinutes = self.firstValue(config.showTimeUntilDepartureOrangeLessThanMinutes, self.config.showTimeUntilDepartureOrangeLessThanMinutes);
 		var showFrom = self.firstValue(config.showFrom, self.config.showFrom);
 		var showTo = self.firstValue(config.showTo, self.config.showTo);
+		var showWalk = self.firstValue(config.showWalk, self.config.showWalk);
 		var timeFormat = self.firstValue(config.timeFormat, self.config.timeFormat);
 
 		table = document.createElement("table");
@@ -300,7 +302,7 @@ Module.register("MMM-timetable-switzerland", {
 				}
 			}
 
-			if (displayCount++ >= limitDisplay) {
+			if (displayCount++ >= limit) {
 				continue;
 			}
 
@@ -502,6 +504,10 @@ Module.register("MMM-timetable-switzerland", {
 		} else {
 			return self.translate("TIME_AGO", {time: text});
 		}
+	},
+
+	toNbsp: function(str) {
+		return str.replaceAll(" ", "&nbsp;");
 	},
 
 	firstValue: function() {
