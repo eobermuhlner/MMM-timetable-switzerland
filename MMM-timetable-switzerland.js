@@ -9,6 +9,8 @@ Module.register("MMM-timetable-switzerland", {
 				type: "connections",
 				from: "Landesmuseum, Zürich",
 				to: "Bundeshaus, Bern",
+				showDepartedMinutes: 1,
+				showWalk: true,
 				limitDisplay: 4,
 			},
 			{
@@ -20,16 +22,16 @@ Module.register("MMM-timetable-switzerland", {
 			}
 		],
 		limit: 10, // limit requested number of entries (should be at least limitDisplay)
-		transportations: null, // limit transpartation types to some of the following: [ 'train', 'tram', 'ship', 'bus', 'cableway' ]
+		transportations: null, // limit transportation types to some of the following: [ 'train', 'tram', 'ship', 'bus', 'cableway' ]
 		limitDisplay: 5, // limit displayed number of entries
 		opacityFactor: 0.6, // fade out later entries by this factor
 		timeFormat: "HH:mm", // time format to display
+		showDepartedMinutes: 0, // show already departed connections for x minutes
 		showFrom: false, // show the name of departure station
 		showTo: false, // show the name of arrival station
 		showWalk: false, // show the walking parts of the connection
 		showNextStops: 3, // show the number of next stops in "stationboard"
 		showTimeUntilDeparture: true, // show the relative time until departure (e.g. "in 2m 15s")
-		showTimeUntilDepartureLessThanMinutes: 60, // show the relative time until departure when less than x minutes
 		showTimeUntilDepartureRedLessThanMinutes: 1, // show the relative time until departure in _red_ when less than x minutes
 		showTimeUntilDepartureOrangeLessThanMinutes: 2 // show the relative time until departure in _orange_ when less than x minutes
 	},
@@ -146,9 +148,12 @@ Module.register("MMM-timetable-switzerland", {
 
 		var limitDisplay = self.firstValue(config.limitDisplay, self.config.limitDisplay);
 		var opacityFactor = self.firstValue(config.opacityFactor, self.config.opacityFactor);
+		var showDepartedMinutes = self.firstValue(config.showDepartedMinutes, self.config.showDepartedMinutes);
 		var showTimeUntilDeparture = self.firstValue(config.showTimeUntilDeparture, self.config.showTimeUntilDeparture);
 		var showTimeUntilDepartureRedLessThanMinutes = self.firstValue(config.showTimeUntilDepartureRedLessThanMinutes, self.config.showTimeUntilDepartureRedLessThanMinutes);
 		var showTimeUntilDepartureOrangeLessThanMinutes = self.firstValue(config.showTimeUntilDepartureOrangeLessThanMinutes, self.config.showTimeUntilDepartureOrangeLessThanMinutes);
+		var showNextStops = self.firstValue(config.showNextStops, self.config.showNextStops);
+		var timeFormat = self.firstValue(config.timeFormat, self.config.timeFormat);
 
 		table = document.createElement("table");
 		table.className = "small";
@@ -167,7 +172,7 @@ Module.register("MMM-timetable-switzerland", {
 					mom.add(connection.from.delay, 'minutes');
 				}
 				var millisUntilDeparture = mom.diff(now);
-				if (millisUntilDeparture <= 0) {
+				if (millisUntilDeparture <= -showDepartedMinutes * 60*1000) {
 					continue;
 				}
 			}
@@ -181,28 +186,30 @@ Module.register("MMM-timetable-switzerland", {
 			opacity = opacity * opacityFactor;
 			tbody.appendChild(tr);
 
-			td = document.createElement("td");
-			if (journey.stop.departure && showTimeUntilDeparture) {
-				var mom = moment(journey.stop.departure);
-				if (journey.stop.delay && journey.stop.delay > 0) {
-					mom.add(connection.from.delay, 'minutes');
+			if (showTimeUntilDeparture) {
+				td = document.createElement("td");
+				if (journey.stop.departure) {
+					var mom = moment(journey.stop.departure);
+					if (journey.stop.delay && journey.stop.delay > 0) {
+						mom.add(connection.from.delay, 'minutes');
+					}
+					var millisUntilDeparture = mom.diff(now);
+					td.innerHTML = self.humanizeDepartureMillis(millisUntilDeparture);
+					td.className = "dimmed xsmall align-left time-until-departure";
+					td.style.min
+					if (millisUntilDeparture < showTimeUntilDepartureRedLessThanMinutes*60*1000) {
+						td.className += " red";
+					} else if (millisUntilDeparture < showTimeUntilDepartureOrangeLessThanMinutes*60*1000) {
+						td.className += " orange";
+					}
 				}
-				var millisUntilDeparture = mom.diff(now);
-				td.innerHTML = self.humanizeDepartureMillis(millisUntilDeparture);
-				td.className = "dimmed xsmall align-left time-until-departure";
-				td.style.min
-				if (millisUntilDeparture < showTimeUntilDepartureRedLessThanMinutes*60*1000) {
-					td.className += " red";
-				} else if (millisUntilDeparture < showTimeUntilDepartureOrangeLessThanMinutes*60*1000) {
-					td.className += " orange";
-				}
+				tr.appendChild(td);
 			}
-			tr.appendChild(td);
 
 			td = document.createElement("td");
 			if (journey.stop.departure) {
 				var mom = moment(journey.stop.departure);
-				td.innerHTML = mom.format(self.config.timeFormat);
+				td.innerHTML = mom.format(timeFormat);
 				td.className = "bright departure-time";
 			}
 			tr.appendChild(td);
@@ -224,8 +231,8 @@ Module.register("MMM-timetable-switzerland", {
 			td.className = "align-left bright journey-number";
 			tr.appendChild(td);
 
-			if (self.config.showNextStops > 0) {
-				for (let stopIndex = 0; stopIndex < self.config.showNextStops; stopIndex++) {
+			if (showNextStops > 0) {
+				for (let stopIndex = 0; stopIndex < showNextStops; stopIndex++) {
 					td = document.createElement("td");
 					if (stopIndex+1 < journey.passList.length-1) { // do not show index 0 (current station) and last index (final destination)
 						td.innerHTML = journey.passList[stopIndex+1].station.name;
@@ -258,9 +265,13 @@ Module.register("MMM-timetable-switzerland", {
 
 		var limitDisplay = self.firstValue(config.limitDisplay, self.config.limitDisplay);
 		var opacityFactor = self.firstValue(config.opacityFactor, self.config.opacityFactor);
+		var showDepartedMinutes = self.firstValue(config.showDepartedMinutes, self.config.showDepartedMinutes);
 		var showTimeUntilDeparture = self.firstValue(config.showTimeUntilDeparture, self.config.showTimeUntilDeparture);
 		var showTimeUntilDepartureRedLessThanMinutes = self.firstValue(config.showTimeUntilDepartureRedLessThanMinutes, self.config.showTimeUntilDepartureRedLessThanMinutes);
 		var showTimeUntilDepartureOrangeLessThanMinutes = self.firstValue(config.showTimeUntilDepartureOrangeLessThanMinutes, self.config.showTimeUntilDepartureOrangeLessThanMinutes);
+		var showFrom = self.firstValue(config.showFrom, self.config.showFrom);
+		var showTo = self.firstValue(config.showTo, self.config.showTo);
+		var timeFormat = self.firstValue(config.timeFormat, self.config.timeFormat);
 
 		table = document.createElement("table");
 		table.className = "small";
@@ -284,7 +295,7 @@ Module.register("MMM-timetable-switzerland", {
 					mom.add(connection.from.delay, 'minutes');
 				}
 				var millisUntilDeparture = mom.diff(now);
-				if (millisUntilDeparture <= 0) {
+				if (millisUntilDeparture  <= -showDepartedMinutes * 60*1000) {
 					continue;
 				}
 			}
@@ -298,27 +309,29 @@ Module.register("MMM-timetable-switzerland", {
 			opacity = opacity * opacityFactor;
 			tbody.appendChild(tr);
 
-			td = document.createElement("td");
-			if (connection.from.departure && showTimeUntilDeparture) {
-				var mom = moment(connection.from.departure);
-				if (connection.from.delay && connection.from.delay > 0) {
-					mom.add(connection.from.delay, 'minutes');
+			if (showTimeUntilDeparture) {
+				td = document.createElement("td");
+				if (connection.from.departure) {
+					var mom = moment(connection.from.departure);
+					if (connection.from.delay && connection.from.delay > 0) {
+						mom.add(connection.from.delay, 'minutes');
+					}
+					var millisUntilDeparture = mom.diff(now);
+					td.innerHTML = self.humanizeDepartureMillis(millisUntilDeparture);
+					td.className = "dimmed xsmall align-left time-until-departure";
+					if (millisUntilDeparture < showTimeUntilDepartureRedLessThanMinutes*60*1000) {
+						td.className += " red";
+					} else if (millisUntilDeparture < showTimeUntilDepartureOrangeLessThanMinutes*60*1000) {
+						td.className += " orange";
+					}
 				}
-				var millisUntilDeparture = mom.diff(now);
-				td.innerHTML = self.humanizeDepartureMillis(millisUntilDeparture);
-				td.className = "dimmed xsmall align-left time-until-departure";
-				if (millisUntilDeparture < showTimeUntilDepartureRedLessThanMinutes*60*1000) {
-					td.className += " red";
-				} else if (millisUntilDeparture < showTimeUntilDepartureOrangeLessThanMinutes*60*1000) {
-					td.className += " orange";
-				}
+				tr.appendChild(td);
 			}
-			tr.appendChild(td);
 
 			td = document.createElement("td");
 			if (connection.from.departure) {
 				var mom = moment(connection.from.departure);
-				td.innerHTML = mom.format(self.config.timeFormat);
+				td.innerHTML = mom.format(timeFormat);
 				td.className = "bright departure-time";
 			}
 			tr.appendChild(td);
@@ -330,7 +343,7 @@ Module.register("MMM-timetable-switzerland", {
 			}
 			tr.appendChild(td);
 
-			if (self.config.showFrom) {
+			if (showFrom) {
 				td = document.createElement("td");
 				td.innerHTML = connection.from.station.name;
 				td.className = "dimmed station-name"
@@ -338,22 +351,22 @@ Module.register("MMM-timetable-switzerland", {
 			}
 
 			for (let sectionIndex = 0; sectionIndex < maxSections; sectionIndex++) {
-				if (sectionIndex < connection.sections.length && (self.config.showWalk || !connection.sections[sectionIndex].walk)) {
+				if (sectionIndex < connection.sections.length && (showWalk || !connection.sections[sectionIndex].walk)) {
 					var section = connection.sections[sectionIndex];
 
-					if (self.config.showFrom || sectionIndex > 0) {
+					if (showFrom || sectionIndex > 0) {
 						td = document.createElement("td");
 						if (section.departure) {
 							var mom = moment(section.departure.departure);
-							td.innerHTML = mom.format(self.config.timeFormat);
-							td.className = "dimmed departure-time";
+							td.innerHTML = mom.format(timeFormat);
+							td.className = "dimmed xsmall departure-time";
 						}
 						tr.appendChild(td);
 
 						td = document.createElement("td");
 						if (section.delay && section.delay > 0) {
 							td.innerHTML = "+" + section.delay;
-							td.className = "bright red departure-delay";
+							td.className = "bright xsmall red departure-delay";
 						}
 						tr.appendChild(td);
 
@@ -404,7 +417,7 @@ Module.register("MMM-timetable-switzerland", {
 				}
 			}
 
-			if (self.config.showTo) {
+			if (showTo) {
 				td = document.createElement("td");
 				td.innerHTML = connection.to.station.name;
 				td.className = "station-name";
@@ -414,7 +427,7 @@ Module.register("MMM-timetable-switzerland", {
 			td = document.createElement("td");
 			if (connection.to.arrival) {
 				var mom = moment(connection.to.arrival);
-				td.innerHTML = mom.format(self.config.timeFormat);
+				td.innerHTML = mom.format(timeFormat);
 				td.className = "arrival-time";
 			}
 			td.className = "bright"
@@ -456,23 +469,20 @@ Module.register("MMM-timetable-switzerland", {
 	humanizeDepartureMillis: function (millis) {
 		var self = this;
 
-		if (Math.abs(millis) <= 1*1000) {
-			return self.translate("TIME_NOW");
-		} else if (millis < 0) {
-			return self.translate("TIME_AGO", {time: self.humanizeMillis(-millis)});
-		} else if (millis < self.config.showTimeUntilDepartureLessThanMinutes*60*1000) {
-			return self.translate("TIME_IN", {time: self.humanizeMillis(millis)});
-		} else {
-			return self.translate("TIME_FAR_FUTURE", {time: self.humanizeMillis(millis)});
+		var isInFuture = true;
+		if (millis < 0) {
+			millis = -millis;
+			isInFuture = false;
 		}
-	},
 
-	humanizeMillis: function (millis) {
-		var self = this;
+		millis = millis + 30*1000;
 
 		var hours = Math.floor(millis / 1000/60/60);
 		var minutes = Math.floor((millis - hours * 1000*60*60) /1000/60);
-		var seconds = Math.floor((millis - hours * 1000*60*60 - minutes * 1000*60) / 1000);
+		if (hours == 0 && minutes == 0) {
+			return self.translate("TIME_NOW");
+		}
+
 		var text = "";
 		if (hours > 0) {
 			text += hours + self.translate("HOURS_SHORT");
@@ -486,21 +496,17 @@ Module.register("MMM-timetable-switzerland", {
 		if (minutes > 0) {
 			text += minutes + self.translate("MINUTES_SHORT");
 		}
-		if (minutes > 0 && seconds > 0) {
-			text += " ";
-			if (seconds < 10) {
-				text += "0";
-			}
+
+		if (isInFuture) {
+			return self.translate("TIME_IN", {time: text});
+		} else {
+			return self.translate("TIME_AGO", {time: text});
 		}
-		if (seconds > 0) {
-			text += seconds + self.translate("SECONDS_SHORT");
-		}
-		return text;
 	},
 
 	firstValue: function() {
 		for (arg of arguments) {
-			if (arg) {
+			if (arg != null) {
 				return arg;
 			}
 		}
