@@ -1,5 +1,7 @@
 {
 	"LOADING": "Loading &hellip;",
+	"LOADING_CONNECTION": "Loading {from} - {to} &hellip;",
+	"LOADING_STATIONBOARD": "Loading {station} &hellip;",
 
 	"DAYS_SHORT": "d",
 	"HOURS_SHORT": "h",

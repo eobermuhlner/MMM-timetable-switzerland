@@ -4,13 +4,12 @@ Module.register("MMM-timetable-switzerland", {
 		refreshMinutes: 5,  // request timetable every x minutes (plus refreshHours)
 		refreshScreenMinutes: 0, // refresh screen timetable every x minutes (plus refreshScreenSeconds)
 		refreshScreenSeconds: 1, // refresh screen timetable every x seconds (plus refreshScreenSeconds)
-		type: "stationboard", // allowed: "stationboard", "connections"
-		station: "Zürich", // in "stationboard" show this station
-		from: "Zürich", // in "connections" use this departure station or address
-		to: "Basel", // in "connections" use this arrival station or address
+		connections: [],
+		stationboards: [],
 		limit: 10, // limit requested number of entries (should be at least limitDisplay)
+		transportations: null, // limit transpartation types to some of the following: [ 'train', 'tram', 'ship', 'bus', 'cableway' ]
 		limitDisplay: 5, // limit displayed number of entries
-		opacityFactor: 0.8, // fade out later entries by this factor
+		opacityFactor: 0.6, // fade out later entries by this factor
 		timeFormat: "HH:mm", // time format to display
 		showFrom: false, // show the name of departure station
 		showTo: false, // show the name of arrival station
@@ -40,21 +39,44 @@ Module.register("MMM-timetable-switzerland", {
 	start: function () {
 		var self = this;
 
-		self.url = "http://transport.opendata.ch/v1";
-		if (self.config.type === 'stationboard') {
-			self.url += "/stationboard";
-			self.url += "?station=" + self.config.station;
-		}
-		if (self.config.type === 'connections') {
-			self.url += "/connections";
-			self.url += "?from=" + self.config.from;
-			self.url += "&to=" + self.config.to;
-		}
-		if (self.config.limit) {
-			self.url += "&limit=" + self.config.limit;
+		self.connectionUrls = [];
+		self.connections = [];
+
+		for (connection of self.config.connections) {
+			var url = "http://transport.opendata.ch/v1";
+			url += "/connections";
+			url += "?from=" + connection.from;
+			url += "&to=" + connection.to;
+			var limit = self.firstValue(connection.limit, self.config.limit);
+			if (limit) {
+				url += "&limit=" + limit;
+			}
+			var transportations = self.firstValue(connection.transportations, self.config.transportations);
+			if (transportations) {
+				url += "&transportations=" + transportations;
+			}
+			self.connectionUrls.push(url);
+			self.connections.push(null);
 		}
 
-		self.timetable = null;
+		self.stationboardUrls = [];
+		self.stationboards = [];
+
+		for (stationboard of self.config.stationboards) {
+			var url = "http://transport.opendata.ch/v1";
+			url += "/stationboard";
+			url += "?station=" + stationboard.station;
+			var limit = self.firstValue(stationboard.limit, self.config.limit);
+			if (limit) {
+				url += "&limit=" + limit;
+			}
+			var transportations = self.firstValue(stationboard.transportations, self.config.transportations);
+			if (transportations) {
+				url += "&transportations=" + transportations;
+			}
+			self.stationboardUrls.push(url);
+			self.stationboards.push(null);
+		}
 	},
 
 	getDom: function() {
@@ -62,28 +84,67 @@ Module.register("MMM-timetable-switzerland", {
 
 		var wrapper = document.createElement("div");
 
-		if (!self.timetable) {
-			wrapper.innerHTML = self.translate("LOADING");
-			wrapper.className = "dimmed light small";
-			return wrapper;
-		}
+		for (i = 0; i < self.connections.length; i++) {
+			if (self.connections[i]) {
+				var div = document.createElement("div");
+				div.className = "medium connection-header";
 
-		if (self.timetable.stationboard) {
-			dom = self.getStationboardDom(self.timetable);
-			wrapper.appendChild(dom);
+				var span = document.createElement("span");
+				span.innerHTML = self.config.connections[i].from;
+				span.className = "dimmed station-name connection-from"
+				div.appendChild(span);
+
+				var span = document.createElement("span");
+				span.innerHTML = self.config.connections[i].to;
+				span.className = "bright station-name connection-to"
+				div.appendChild(span);
+
+				wrapper.appendChild(div);
+
+				dom = self.getConnectionsDom(self.connections[i], self.config.connections[i]);
+				wrapper.appendChild(dom);
+			} else {
+				var div = document.createElement("div");
+				div.innerHTML = self.translate("LOADING_CONNECTION", self.config.connections[i]);
+				div.className = "dimmed light small";
+				wrapper.appendChild(div);
+			}
 		}
-		if (self.timetable.connections) {
-			dom = self.getConnectionsDom(self.timetable);
-			wrapper.appendChild(dom);
+		for (i = 0; i < self.stationboards.length; i++) {
+			if (self.stationboards[i]) {
+				var div = document.createElement("div");
+				div.className = "medium stationboard-header";
+
+				var span = document.createElement("span");
+				span.innerHTML = self.config.stationboards[i].station;
+				span.className = "bright station-name stationboard-station"
+				div.appendChild(span);
+
+				wrapper.appendChild(div);
+
+				dom = self.getStationboardDom(self.stationboards[i], self.config.stationboards[i]);
+				wrapper.appendChild(dom);
+			} else {
+				var div = document.createElement("div");
+				div.innerHTML = self.translate("LOADING_STATIONBOARD", self.config.stationboards[i]);
+				div.className = "dimmed light small";
+				wrapper.appendChild(div);
+			}
 		}
 
 		return wrapper;
 	},
 
-	getStationboardDom: function(data) {
+	getStationboardDom: function(data, config) {
 		var self = this;
 
 		var now = moment();
+
+		var limitDisplay = self.firstValue(config.limitDisplay, self.config.limitDisplay);
+		var opacityFactor = self.firstValue(config.opacityFactor, self.config.opacityFactor);
+		var showTimeUntilDeparture = self.firstValue(config.showTimeUntilDeparture, self.config.showTimeUntilDeparture);
+		var showTimeUntilDepartureRedLessThanMinutes = self.firstValue(config.showTimeUntilDepartureRedLessThanMinutes, self.config.showTimeUntilDepartureRedLessThanMinutes);
+		var showTimeUntilDepartureOrangeLessThanMinutes = self.firstValue(config.showTimeUntilDepartureOrangeLessThanMinutes, self.config.showTimeUntilDepartureOrangeLessThanMinutes);
 
 		table = document.createElement("table");
 		table.className = "small";
@@ -107,28 +168,28 @@ Module.register("MMM-timetable-switzerland", {
 				}
 			}
 
-			if (displayCount++ >= self.config.limitDisplay) {
+			if (displayCount++ >= limitDisplay) {
 				continue;
 			}
 
 			tr = document.createElement("tr");
 			tr.style.opacity = opacity;
-			opacity = opacity * self.config.opacityFactor;
+			opacity = opacity * opacityFactor;
 			tbody.appendChild(tr);
 
 			td = document.createElement("td");
-			if (journey.stop.departure && self.config.showTimeUntilDeparture) {
+			if (journey.stop.departure && showTimeUntilDeparture) {
 				var mom = moment(journey.stop.departure);
 				if (journey.stop.delay && journey.stop.delay > 0) {
 					mom.add(connection.from.delay, 'minutes');
 				}
 				var millisUntilDeparture = mom.diff(now);
 				td.innerHTML = self.humanizeDepartureMillis(millisUntilDeparture);
-				td.className = "dimmed xsmall time-until-departure";
+				td.className = "dimmed xsmall align-left time-until-departure";
 				td.style.min
-				if (millisUntilDeparture < self.config.showTimeUntilDepartureRedLessThanMinutes*60*1000) {
+				if (millisUntilDeparture < showTimeUntilDepartureRedLessThanMinutes*60*1000) {
 					td.className += " red";
-				} else if (millisUntilDeparture < self.config.showTimeUntilDepartureOrangeLessThanMinutes*60*1000) {
+				} else if (millisUntilDeparture < showTimeUntilDepartureOrangeLessThanMinutes*60*1000) {
 					td.className += " orange";
 				}
 			}
@@ -186,10 +247,16 @@ Module.register("MMM-timetable-switzerland", {
 		return table;
 	},
 
-	getConnectionsDom: function(data) {
+	getConnectionsDom: function(data, config) {
 		var self = this;
 
 		var now = moment();
+
+		var limitDisplay = self.firstValue(config.limitDisplay, self.config.limitDisplay);
+		var opacityFactor = self.firstValue(config.opacityFactor, self.config.opacityFactor);
+		var showTimeUntilDeparture = self.firstValue(config.showTimeUntilDeparture, self.config.showTimeUntilDeparture);
+		var showTimeUntilDepartureRedLessThanMinutes = self.firstValue(config.showTimeUntilDepartureRedLessThanMinutes, self.config.showTimeUntilDepartureRedLessThanMinutes);
+		var showTimeUntilDepartureOrangeLessThanMinutes = self.firstValue(config.showTimeUntilDepartureOrangeLessThanMinutes, self.config.showTimeUntilDepartureOrangeLessThanMinutes);
 
 		table = document.createElement("table");
 		table.className = "small";
@@ -218,27 +285,27 @@ Module.register("MMM-timetable-switzerland", {
 				}
 			}
 
-			if (displayCount++ >= self.config.limitDisplay) {
+			if (displayCount++ >= limitDisplay) {
 				continue;
 			}
 
 			tr = document.createElement("tr");
 			tr.style.opacity = opacity;
-			opacity = opacity * self.config.opacityFactor;
+			opacity = opacity * opacityFactor;
 			tbody.appendChild(tr);
 
 			td = document.createElement("td");
-			if (connection.from.departure && self.config.showTimeUntilDeparture) {
+			if (connection.from.departure && showTimeUntilDeparture) {
 				var mom = moment(connection.from.departure);
 				if (connection.from.delay && connection.from.delay > 0) {
 					mom.add(connection.from.delay, 'minutes');
 				}
 				var millisUntilDeparture = mom.diff(now);
 				td.innerHTML = self.humanizeDepartureMillis(millisUntilDeparture);
-				td.className = "dimmed xsmall time-until-departure";
-				if (millisUntilDeparture < self.config.showTimeUntilDepartureRedLessThanMinutes*60*1000) {
+				td.className = "dimmed xsmall align-left time-until-departure";
+				if (millisUntilDeparture < showTimeUntilDepartureRedLessThanMinutes*60*1000) {
 					td.className += " red";
-				} else if (millisUntilDeparture < self.config.showTimeUntilDepartureOrangeLessThanMinutes*60*1000) {
+				} else if (millisUntilDeparture < showTimeUntilDepartureOrangeLessThanMinutes*60*1000) {
 					td.className += " orange";
 				}
 			}
@@ -427,9 +494,35 @@ Module.register("MMM-timetable-switzerland", {
 		return text;
 	},
 
+	firstValue: function() {
+		for (arg of arguments) {
+			if (arg) {
+				return arg;
+			}
+		}
+		return null;
+	},
+
 	getTimeTable: function() {
 		var self = this;
-		self.sendSocketNotification('GET_TIMETABLE', self.url);
+
+		if (self.connectionUrls && self.connectionUrls.length > 0) {
+			for (i = 0; i < self.connectionUrls.length; i++) {
+				self.sendSocketNotification('GET_CONNECTION', {
+					index: i,
+					url: self.connectionUrls[i]
+				});
+			}
+		}
+
+		if (self.stationboardUrls && self.stationboardUrls.length > 0) {
+			for (i = 0; i < self.stationboardUrls.length; i++) {
+				self.sendSocketNotification('GET_STATIONBOARD', {
+					index: i,
+					url: self.stationboardUrls[i]
+				});
+			}
+		}
 	},
 
 	notificationReceived: function(notification, payload, sender) {
@@ -450,17 +543,15 @@ Module.register("MMM-timetable-switzerland", {
 			}
 	},
 
-	processTimeTable: function(data) {
-		var self = this;
-
-		self.timetable = data;
-	},
-
 	socketNotificationReceived: function(notification, payload) {
 		var self = this;
 
-		if (notification === 'TIMETABLE_RESULT') {
-			self.processTimeTable(payload);
+		if (notification === 'CONNECTION_RESULT') {
+			self.connections[payload.index] = payload.timetable;
+			self.updateDom();
+		}
+		if (notification === 'STATIONBOARD_RESULT') {
+			self.stationboards[payload.index] = payload.timetable;
 			self.updateDom();
 		}
 	},

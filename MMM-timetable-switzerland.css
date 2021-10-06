@@ -1,5 +1,28 @@
 @import url("https://use.fontawesome.com/releases/v6.0.0/css/all.css");
 
+.connection-header {
+  display: flex;
+}
+
+.connection-from {
+  flex: 1;
+  text-align: left;
+}
+
+.connection-to {
+  flex: 1;
+  text-align: right;
+}
+
+.stationboard-header {
+  display: flex;
+}
+
+.stationboard-station {
+  flex: 1;
+  text-align: left;
+}
+
 .time-until-departure {
   min-width: 80px;
 }
