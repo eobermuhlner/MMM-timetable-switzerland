@@ -1,9 +1,6 @@
 Module.register("MMM-timetable-switzerland", {
 	defaults: {
-		refreshHours: 0, // Request timetable every x hours (plus refreshMinutes)
-		refreshMinutes: 5,  // Request timetable every x minutes (plus refreshHours)
-		refreshScreenMinutes: 0, // Refresh screen timetable every x minutes (plus refreshScreenSeconds)
-		refreshScreenSeconds: 1, // Refresh screen timetable every x seconds (plus refreshScreenSeconds)
+		refreshMinutes: 5,  // Request timetable every x minutes
 		timetables: [
 			{
 				type: "connections",
@@ -21,7 +18,7 @@ Module.register("MMM-timetable-switzerland", {
 				transportations: [ 'train' ]
 			}
 		],
-		requestLimit: 10, // Limit requested number of entries (should be at least `limit`)
+		requestLimit: null, // Limit requested number of entries (should be at least `limit`)
 		transportations: null, // Limit transportation types to some of the following: [ 'train', 'tram', 'ship', 'bus', 'cableway' ]
 		limit: 5, // Limit displayed number of entries (must be lower or equal to `requestLimit`)
 		opacityFactor: 0.6, // Fade out later entries by this factor
@@ -471,6 +468,8 @@ Module.register("MMM-timetable-switzerland", {
 	humanizeDepartureMillis: function (millis) {
 		var self = this;
 
+		var origMillis = millis;
+
 		var isInFuture = true;
 		if (millis < 0) {
 			millis = -millis;
@@ -532,6 +531,13 @@ Module.register("MMM-timetable-switzerland", {
 		}
 	},
 
+	calculateMillisUntilNextScreenRefresh: function() {
+		const EXTRA_DELAY = 50;
+		const EVERY_N_SECONDS = 30;
+
+		return (EVERY_N_SECONDS - moment().seconds() % EVERY_N_SECONDS) * 1000 + EXTRA_DELAY;
+	},
+
 	notificationReceived: function(notification, payload, sender) {
 		var self = this;
 
@@ -540,12 +546,16 @@ Module.register("MMM-timetable-switzerland", {
 				self.getTimeTable();
 
 				var timer = setInterval(()=>{
-					self.updateDom();
-				}, self.config.refreshScreenMinutes*60*1000 + self.config.refreshScreenSeconds*1000);
-
-				var timer = setInterval(()=>{
 					self.getTimeTable();
-				}, self.config.refreshHours*60*60*1000 + self.config.refreshMinutes*60*1000);
+				}, self.config.refreshMinutes*60*1000);
+
+				var screenRefresh = function() {
+					self.updateDom();
+					var millis = self.calculateMillisUntilNextScreenRefresh();
+					setTimeout(screenRefresh, millis);
+				};
+
+				setTimeout(screenRefresh, self.calculateMillisUntilNextScreenRefresh());
 				break;
 			}
 	},

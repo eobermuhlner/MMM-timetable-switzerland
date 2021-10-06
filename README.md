@@ -27,7 +27,7 @@ Each timetable entry is one of the following types:
 
 Show all public transport leaving a specified station.
 
-Edit the `MagicMirror/config/config.js` file:
+Edit the `MagicMirror/config/config.js` file to add a new module entry:
 ```json5
   modules: [
     {
@@ -79,7 +79,7 @@ Optional configurations can be added at the top level or on the specific timetab
 
 Show all connections between two specified stations or addresses.
 
-Edit the `MagicMirror/config/config.js` file:
+Edit the `MagicMirror/config/config.js` file to add a new module entry:
 ```json5
   modules: [
     {
@@ -132,10 +132,7 @@ Optional configurations can be added at the top level or on the specific timetab
 The following values are the default configuration:
 
 ```json5
-  refreshHours: 0, // request timetable every x hours (plus refreshMinutes)
-  refreshMinutes: 5,  // request timetable every x minutes (plus refreshHours)
-  refreshScreenMinutes: 0, // refresh screen timetable every x minutes (plus refreshScreenSeconds)
-  refreshScreenSeconds: 1, // refresh screen timetable every x seconds (plus refreshScreenSeconds)
+  refreshMinutes: 5,  // request timetable every x minutes
   timetables: [
     {
       type: "connections",
