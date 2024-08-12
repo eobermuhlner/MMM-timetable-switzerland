@@ -1,5 +1,4 @@
 const NodeHelper = require('node_helper');
-const request = require('request');
 
 module.exports = NodeHelper.create({
 
@@ -8,19 +7,23 @@ module.exports = NodeHelper.create({
     },
 
     requestTimetable: function(index, url) {
-        request({
-            url: url,
-            method: 'GET'
-        }, (error, response, body) => {
-			//console.log(response.statusCode + " : " + body);
-            if (!error && response.statusCode == 200) {
-                var result = JSON.parse(body);
-				this.sendSocketNotification('TIMETABLE_RESULT', {
-					index: index,
-					timetable: result
-				});
-            }
-        });
+        fetch(url)
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('Request failed with status code ' + response.status);
+                }
+            })
+            .then(result => {
+                this.sendSocketNotification('TIMETABLE_RESULT', {
+                    index: index,
+                    timetable: result
+                });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
     },
 
     socketNotificationReceived: function(notification, payload) {
